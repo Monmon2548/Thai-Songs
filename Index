@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>นักปราชญ์เพลงพื้นบ้าน (Multiplayer & Leaderboard) - วรรณกรรมท้องถิ่น ม.4-ม.6</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        thai: {
+                            gold: '#D97706',
+                            goldLight: '#FBBF24',
+                            amberDark: '#78350F',
+                            terracotta: '#9A3412',
+                            warmBg: '#FFFDF9',
+                            cardBg: '#FFFFFF',
+                            green: '#10B981',
+                            red: '#EF4444',
+                            purple: '#8B5CF6'
+                        }
+                    },
+                    fontFamily: {
+                        prompt: ['Prompt', 'sans-serif'],
+                        sarabun: ['Sarabun', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'thai-soft': '0 10px 25px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(217, 119, 6, 0.08)',
+                        'glow-gold': '0 0 25px rgba(245, 158, 11, 0.4)',
+                        'glow-red': '0 0 25px rgba(239, 68, 68, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #FFFDF9;
+            background-image: radial-gradient(#F3E8FF 0.8px, transparent 0.8px), radial-gradient(#FEF3C7 0.8px, #FFFDF9 0.8px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+        }
+
+        h1, h2, h3, h4, .font-prompt {
+            font-family: 'Prompt', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(12px);
+            border: 1.5px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .option-btn {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 8px 20px -4px rgba(217, 119, 6, 0.25);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes comboPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-combo {
+            animation: comboPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes heartPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+        }
+        .animate-heart-danger {
+            animation: heartPulse 0.8s infinite ease-in-out;
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: floatSlow 3.5s infinite ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FEF3C7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D97706;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col min-h-screen selection:bg-amber-200">
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-amber-400">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-amber-400 text-xl"></i>
+            <span id="toast-message" class="text-sm font-semibold font-prompt">แจ้งเตือน</span>
+        </div>
+    </div>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="w-full bg-white/90 backdrop-blur-md border-b border-amber-200/80 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/20">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div>
+                    <h1 class="text-base md:text-xl font-extrabold text-slate-800 leading-tight">นักปราชญ์เพลงพื้นบ้าน</h1>
+                    <p class="text-[11px] text-amber-700 font-semibold">วรรณกรรมท้องถิ่น ม.๔ - ม.๖ (Multiplayer Edition)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Sound Toggle -->
+                <button id="sound-btn" onclick="toggleSound()" class="p-2 rounded-xl hover:bg-amber-100/70 text-amber-800 transition-colors" title="เปิด/ปิด เสียง">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+                <!-- Leaderboard Modal Trigger -->
+                <button onclick="openLeaderboardModal()" class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs md:text-sm font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-trophy text-amber-600"></i>
+                    <span class="hidden sm:inline">ตารางคะแนน</span>
+                </button>
+                <!-- Knowledge Base Trigger -->
+                <button onclick="openKnowledgeModal()" class="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-sm transition">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span class="hidden sm:inline">คลังความรู้</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="flex-grow flex items-center justify-center p-3 md:p-6 max-w-4xl mx-auto w-full">
+
+        <!-- 1. START SCREEN (With Name Registration) -->
+        <section id="start-screen" class="w-full space-y-6 animate-fadeIn">
+            <div class="glass-card rounded-3xl p-6 md:p-10 shadow-thai-soft border border-amber-300/80 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
+
+                <div class="text-center space-y-4 max-w-2xl mx-auto pt-2">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/80 text-amber-900 text-xs md:text-sm font-bold border border-amber-200">
+                        <i class="fa-solid fa-users text-orange-500"></i>
+                        <span>โหมดแข่งขันออนไลน์ & สะสมความรู้</span>
+                    </div>
+
+                    <h1 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight">
+                        ศึกนักปราชญ์ <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-600 to-red-600">"เพลงพื้นบ้านไทย"</span>
+                    </h1>
+
+                    <p class="text-sm md:text-base text-slate-600 leading-relaxed bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200 text-left md:text-center shadow-inner">
+                        ท้าประลองความรู้กับเพื่อนๆ ในชั้นเรียน! มีเวลา <strong>๑๕ วินาที</strong> ต่อข้อ สะสมคอมโบ x3 และแบ่งปัน <strong>"สรุปความรู้"</strong> ขึ้นกระดานผู้นำออนไลน์!
+                    </p>
+                </div>
+
+                <!-- PLAYER NAME INPUT -->
+                <div class="max-w-md mx-auto my-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-300/80 space-y-2">
+                    <label for="player-name-input" class="block text-xs font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-amber-600"></i>
+                        <span>กรอกชื่อ-นามสกุล หรือชื่อเล่นของคุณก่อนเริ่ม</span>
+                    </label>
+                    <input type="text" id="player-name-input" placeholder="เช่น นายสมชาย สายร้อง ม.5/1" class="w-full px-4 py-3 rounded-xl border border-amber-300 focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-800 placeholder-slate-400 text-sm shadow-sm transition">
+                </div>
+
+                <!-- Start Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <button onclick="checkAndStartQuiz()" class="w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-white font-prompt font-extrabold text-lg shadow-lg shadow-orange-500/30 transform active:scale-95 transition flex items-center justify-center gap-3 group">
+                        <i class="fa-solid fa-play text-xl"></i>
+                        <span>เข้าสู่การแข่งขัน!</span>
+                    </button>
+                    <button onclick="openLeaderboardModal()" class="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 font-prompt font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-500"></i>
+                        <span>ดูตารางคะแนนสด</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 2. QUIZ INTERFACE -->
+        <section id="quiz-screen" class="w-full hidden space-y-4">
+            <!-- Dashboard Bar -->
+            <div class="glass-card rounded-2xl p-4 shadow-sm border border-amber-300/80 space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Player Tag & Lives -->
+                    <div class="flex items-center gap-3">
+                        <div class="bg-amber-100 text-amber-900 px-3 py-1 rounded-xl text-xs font-bold border border-amber-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user text-amber-700"></i>
+                            <span id="active-player-tag">ผู้เล่น</span>
+                        </div>
+                        <div class="flex items-center gap-1 bg-red-50 px-2.5 py-1 rounded-xl border border-red-200">
+                            <div id="lives-container" class="flex gap-1">
+                                <i class="fa-solid fa-heart text-red-500 text-sm"></i>
+                                <i class="fa-solid fa-heart text-red-500 text-sm"></i>
+                                <i class="fa-solid fa-heart text-red-500 text-sm"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Combo Badge -->
+                    <div id="combo-badge" class="hidden px-3 py-1 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 text-slate-900 font-black text-xs shadow-md animate-combo flex items-center gap-1">
+                        <i class="fa-solid fa-fire text-amber-900"></i>
+                        <span id="combo-multiplier-text">COMBO x1.5!</span>
+                    </div>
+
+                    <!-- Current Score -->
+                    <div class="flex items-center gap-2 bg-amber-50 px-3 py-1 rounded-xl border border-amber-300">
+                        <i class="fa-solid fa-star text-amber-500 text-sm"></i>
+                        <span id="current-score" class="font-extrabold text-amber-900 text-base">0</span>
+                    </div>
+                </div>
+
+                <!-- Per-Question Timer -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-bold text-slate-600">
+                        <span id="question-counter" class="text-amber-800">ข้อ 1/12</span>
+                        <span id="timer-text" class="font-mono text-orange-600 font-extrabold">⏱️ 15s</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200 shadow-inner">
+                        <div id="timer-bar" class="bg-gradient-to-r from-emerald-500 via-amber-500 to-orange-500 h-full rounded-full transition-all duration-1000 ease-linear w-full"></div>
+                    </div>
+                </div>
+
+                <!-- Lifelines Row -->
+                <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span class="text-xs font-bold text-slate-500">ตัวช่วย:</span>
+                    <div class="flex gap-2">
+                        <button id="lifeline-5050" onclick="useLifeline5050()" class="px-3 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-scissors"></i>
+                            <span>50/50</span>
+                        </button>
+                        <button id="lifeline-freeze" onclick="useLifelineFreeze()" class="px-3 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-700 font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-snowflake"></i>
+                            <span>แช่แข็งเวลา (+10s)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question & Choices Card -->
+            <div id="quiz-card" class="glass-card rounded-3xl p-5 md:p-8 shadow-thai-soft border border-amber-300 relative">
+                <div id="question-category" class="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-3 border border-amber-200">
+                    หมวดหมู่
+                </div>
+
+                <h2 id="question-text" class="text-base md:text-xl font-extrabold text-slate-800 leading-snug mb-5">
+                    ข้อความคำถาม...
+                </h2>
+
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Choices injected here -->
+                </div>
+
+                <div id="explanation-box" class="hidden mt-5 p-4 rounded-2xl border transition-all duration-300">
+                    <div class="flex items-start gap-3">
+                        <div id="explanation-icon" class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white font-bold text-sm">
+                        </div>
+                        <div class="space-y-1">
+                            <h4 id="explanation-title" class="font-bold text-sm md:text-base">คำอธิบาย</h4>
+                            <p id="explanation-text" class="text-xs md:text-sm text-slate-600 leading-relaxed"></p>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button id="next-btn" onclick="nextQuestion()" class="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-prompt font-bold text-sm shadow-md transition flex items-center gap-2">
+                            <span>ข้อถัดไป</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 3. RESULT & SUBMISSION SCREEN -->
+        <section id="result-screen" class="w-full hidden space-y-6">
+            <div class="glass-card rounded-3xl p-6 md:p-10 shadow-thai-soft border border-amber-300 text-center space-y-6 relative overflow-hidden">
+                <div id="result-top-bar" class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-amber-500 to-orange-500"></div>
+
+                <div class="relative inline-block mt-2">
+                    <div id="rank-badge-bg" class="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center mx-auto shadow-lg animate-float">
+                        <i id="rank-icon" class="fa-solid fa-trophy text-white text-4xl md:text-5xl drop-shadow-md"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <span id="result-subtitle" class="text-xs font-bold text-amber-700 tracking-wider uppercase">สรุปผลการทดสอบ</span>
+                    <h2 id="rank-title" class="text-2xl md:text-4xl font-black text-slate-800">
+                        ปรมาจารย์เพลงพื้นบ้าน
+                    </h2>
+                    <p id="rank-message" class="text-xs md:text-sm text-slate-600 max-w-lg mx-auto">
+                        คำอธิบายสรุปผล...
+                    </p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-3 gap-2 md:gap-4 max-w-md mx-auto">
+                    <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200">
+                        <span class="block text-[11px] text-amber-800 font-bold">คะแนนรวม</span>
+                        <span id="final-score" class="text-lg md:text-2xl font-black text-amber-900">0</span>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+                        <span class="block text-[11px] text-emerald-800 font-bold">ตอบถูก</span>
+                        <span id="final-correct" class="text-lg md:text-2xl font-black text-emerald-900">0/12</span>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-purple-50 border border-purple-200">
+                        <span class="block text-[11px] text-purple-800 font-bold">คอมโบสูงสุด</span>
+                        <span id="final-combo" class="text-lg md:text-2xl font-black text-purple-900">x1</span>
+                    </div>
+                </div>
+
+                <!-- SUBMISSION FORM (Name Confirm & Reflection Box) -->
+                <div class="max-w-lg mx-auto bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-300 text-left space-y-4 shadow-sm">
+                    <h3 class="font-extrabold text-sm md:text-base text-amber-950 flex items-center gap-2 border-b border-amber-200 pb-2">
+                        <i class="fa-solid fa-paper-plane text-amber-600"></i>
+                        <span>บันทึกคะแนน & สรุปความรู้ขึ้นตารางผู้นำ</span>
+                    </h3>
+
+                    <div class="space-y-1">
+                        <label for="final-player-name" class="block text-xs font-bold text-amber-900">ยืนยันชื่อผู้เล่น:</label>
+                        <input type="text" id="final-player-name" class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-semibold">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="reflection-input" class="block text-xs font-bold text-amber-900">สรุปความรู้หรือสิ่งที่ได้เรียนรู้จากเกมนี้ (สรุปคร่าวๆ):</label>
+                        <textarea id="reflection-input" rows="3" placeholder="เช่น ได้รู้ว่าเพลงเรือและลำตัดเป็นของภาคกลาง ใช้สัมผัสกลอนหัวเดียว และเน้นความสนุกสนานโดยไม่ใช้เครื่องดนตรีใหญ่..." class="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm font-medium text-slate-700 placeholder-slate-400"></textarea>
+                    </div>
+
+                    <button id="submit-score-btn" onclick="submitScoreToFirebase()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-prompt font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>ส่งคะแนนและสรุปความรู้</span>
+                    </button>
+                </div>
+
+                <!-- Answers Review Accordion -->
+                <div class="pt-2 border-t border-slate-100">
+                    <button onclick="toggleAnswerReview()" class="text-xs md:text-sm text-amber-800 hover:text-amber-900 font-bold underline inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>ดูเฉลยและทบทวนคำตอบทุกข้อ</span>
+                    </button>
+                    
+                    <div id="answers-review-container" class="hidden mt-4 text-left space-y-3 max-h-64 overflow-y-auto pr-1">
+                        <!-- Dynamic answers review -->
+                    </div>
+                </div>
+
+                <!-- Thank You & View Leaderboard Actions (Play Again button removed) -->
+                <div class="flex flex-col items-center justify-center gap-3 pt-2">
+                    <div id="thank-you-msg" class="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 border border-amber-300 text-amber-950 font-bold text-center text-sm md:text-base flex items-center justify-center gap-2 shadow-inner">
+                        <i class="fa-solid fa-heart text-red-500 text-lg"></i>
+                        <span>ขอบคุณที่ร่วมสนุกและทดสอบความรู้</span>
+                    </div>
+                    <button onclick="openLeaderboardModal()" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-prompt font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trophy text-yellow-200"></i>
+                        <span>ดูตารางคะแนนออนไลน์</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- LEADERBOARD MODAL (Firestore Real-time Data) -->
+    <div id="leaderboard-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 md:p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+            <!-- Modal Header -->
+            <div class="p-4 md:p-6 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                        <i class="fa-solid fa-trophy text-yellow-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-lg md:text-xl leading-tight">ตารางคะแนนและสรุปความรู้สด</h3>
+                        <p class="text-xs text-amber-100">กระดานผู้นำออนไลน์ประจำชั้นเรียน</p>
+                    </div>
+                </div>
+                <button onclick="closeLeaderboardModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Leaderboard Items List -->
+            <div id="leaderboard-list" class="p-4 md:p-6 overflow-y-auto space-y-3 flex-grow">
+                <div class="text-center py-8 text-slate-400 space-y-2">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-500"></i>
+                    <p class="text-xs font-semibold">กำลังโหลดข้อมูลกระดานผู้นำ...</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+                <span id="leaderboard-count-text">ผู้เข้าแข่งขันทั้งหมด: 0 คน</span>
+                <button onclick="closeLeaderboardModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- KNOWLEDGE BASE MODAL -->
+    <div id="knowledge-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 md:p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="p-4 md:p-6 bg-gradient-to-r from-amber-600 to-orange-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                        <i class="fa-solid fa-book-open text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-lg md:text-xl leading-tight">คลังความรู้: เพลงพื้นบ้านไทย</h3>
+                        <p class="text-xs text-amber-100">วรรณกรรมท้องถิ่น ระดับชั้น ม.๔ - ม.๖</p>
+                    </div>
+                </div>
+                <button onclick="closeKnowledgeModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 md:p-8 overflow-y-auto space-y-5 text-slate-700 text-sm leading-relaxed">
+                <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
+                    <h4 class="font-bold text-base text-amber-900 mb-1 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-600 text-white text-xs flex items-center justify-center">1</span>
+                        ความหมายและที่มาของเพลงพื้นบ้าน
+                    </h4>
+                    <p>
+                        <strong>เพลงพื้นบ้าน</strong> คือ บทร้อยกรองท้องถิ่นที่แต่งขึ้นและสืบทอดต่อกันมาแบบปากต่อปาก (มุขปาฐะ) ใช้ร้องขับลำเพื่อความบันเทิง มีถ้อยคำเรียบง่าย สัมผัสคล้องจอง มีจังหวะลีลาเสียงสูงต่ำตามธรรมชาติภาษา
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-orange-50/80 border border-orange-200">
+                    <h4 class="font-bold text-base text-orange-900 mb-1 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-orange-600 text-white text-xs flex items-center justify-center">2</span>
+                        ลักษณะเด่นและการให้จังหวะ
+                    </h4>
+                    <ul class="list-disc list-inside space-y-1 text-xs md:text-sm">
+                        <li><strong>ไร้การจ้างวาน:</strong> เล่นเพื่อความสนุกสนาน สมาชิกในชุมชนผลัดกันร้องรำตามความสมัครใจ</li>
+                        <li><strong>เครื่องให้จังหวะ:</strong> ไม่นิยมดนตรีวงใหญ่ ใช้การปรบมือ ฉิ่ง ฉาบ หรือรำมะนา</li>
+                        <li><strong>สัมผัสกลอนหัวเดียว:</strong> ในเพลงภาคกลางนิยมใช้สัมผัสสระเดียวกันตลอดท่อน (เช่น สระเอา, สระอี)</li>
+                    </ul>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200">
+                    <h4 class="font-bold text-base text-emerald-900 mb-2 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center">3</span>
+                        เพลงพื้นบ้าน ๔ ภาคของไทย
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                            <span class="font-bold text-emerald-800 block">ภาคกลาง:</span>
+                            <span>ลำตัด, เพลงอีแซว, เพลงเต้นกำรำเคียว, เพลงเรือ, เพลงฉ่อย</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                            <span class="font-bold text-emerald-800 block">ภาคเหนือ:</span>
+                            <span>ซอ (ซอเก็บนก), ค่าว, จ๊อย (ร้องเกี้ยวพาราสี)</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                            <span class="font-bold text-emerald-800 block">ภาคอีสาน:</span>
+                            <span>หมอลำ (ลำกลอน, ลำเรื่อง), กันตรึม, เพลงโคราช, เซิ้ง</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-emerald-100">
+                            <span class="font-bold text-emerald-800 block">ภาคใต้:</span>
+                            <span>เพลงบอก (ร้องตรุษสงกรานต์), ดิเกร์ฮูลู (ลิเกฮูลู), รองเง็ง</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-blue-50/80 border border-blue-200">
+                    <h4 class="font-bold text-base text-blue-900 mb-1 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">4</span>
+                        คุณค่าและบทบาททางสังคม
+                    </h4>
+                    <p>
+                        เพลงพื้นบ้านสะท้อนวิถีชีวิต ภูมิปัญญาท้องถิ่น ความเชื่อ ภาษาถิ่น และสร้างความสามัคคีในชุมชนระหว่างเทศกาลลงแขกเก็บเกี่ยวหรืองานบุญประจำปี
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeKnowledgeModal()" class="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm transition">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="w-full text-center py-4 text-xs text-slate-500 border-t border-amber-100 bg-white/50">
+        <p>© สื่อการเรียนรู้ออนไลน์ รายวิชาวรรณกรรมท้องถิ่น กลุ่มสาระการเรียนรู้ภาษาไทย ม.๔ - ม.๖</p>
+    </footer>
+
+    <!-- FIREBASE MODULE & GAME SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global environment bindings
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'folk-song-scholar-app';
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
+        // Try initializing Firebase
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate before Firestore queries (Rule 3)
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                            currentUser = cred.user;
+                        } else {
+                            const cred = await signInAnonymously(auth);
+                            currentUser = cred.user;
+                        }
+                        setupLeaderboardListener();
+                    } catch (e) {
+                        console.warn("Auth initialization error:", e);
+                    }
+                };
+                initAuth();
+            }
+        } catch (err) {
+            console.warn("Firebase not configured or offline mode:", err);
+        }
+
+        // Setup real-time leaderboard listener (Strict path + simple collection query - Rule 1 & Rule 2)
+        function setupLeaderboardListener() {
+            if (!db) return;
+            const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+            
+            onSnapshot(leaderboardCol, (snapshot) => {
+                const items = [];
+                snapshot.forEach(doc => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort in memory to avoid compound index requirements (Rule 2)
+                items.sort((a, b) => b.score - a.score);
+                renderLeaderboardUI(items);
+            }, (error) => {
+                console.error("Leaderboard snapshot error:", error);
+            });
+        }
+
+        // Render Leaderboard Items
+        function renderLeaderboardUI(items) {
+            const container = document.getElementById('leaderboard-list');
+            const countText = document.getElementById('leaderboard-count-text');
+            if (!container) return;
+
+            countText.innerText = `ผู้เข้าแข่งขันทั้งหมด: ${items.length} คน`;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 space-y-2">
+                        <i class="fa-solid fa-award text-3xl text-slate-300"></i>
+                        <p class="text-xs font-semibold">ยังไม่มีข้อมูลในตารางคะแนน ร่วมบันทึกคะแนนเป็นคนแรก!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                const isTop3 = index < 3;
+                let rankBadge = `<span class="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200">${index + 1}</span>`;
+
+                if (index === 0) rankBadge = `<span class="w-7 h-7 rounded-full bg-amber-400 text-slate-900 font-extrabold text-xs flex items-center justify-center shrink-0 shadow-sm">🥇</span>`;
+                if (index === 1) rankBadge = `<span class="w-7 h-7 rounded-full bg-slate-300 text-slate-900 font-extrabold text-xs flex items-center justify-center shrink-0 shadow-sm">🥈</span>`;
+                if (index === 2) rankBadge = `<span class="w-7 h-7 rounded-full bg-amber-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-sm">🥉</span>`;
+
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border ${isTop3 ? 'bg-gradient-to-r from-amber-50/70 to-orange-50/70 border-amber-300 shadow-sm' : 'bg-white border-slate-200'} space-y-2 transition`;
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5">
+                            ${rankBadge}
+                            <div>
+                                <h4 class="font-extrabold text-slate-800 text-sm leading-tight">${escapeHtml(item.playerName || 'ผู้เล่น')}</h4>
+                                <span class="text-[10px] text-slate-400">${item.timestamp ? new Date(item.timestamp).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) : 'เมื่อครู่'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-black text-amber-700 font-prompt">${item.score}</span>
+                            <span class="text-[10px] text-slate-500 font-bold block">ตอบถูก ${item.correctCount || 0}/12</span>
+                        </div>
+                    </div>
+                    ${item.reflection ? `
+                        <div class="bg-white/80 p-2.5 rounded-xl border border-amber-200/60 text-xs text-slate-600">
+                            <span class="font-bold text-amber-900 block text-[11px] mb-0.5">💬 สรุปสิ่งที่เรียนรู้:</span>
+                            "${escapeHtml(item.reflection)}"
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;")
+                       .replace(/"/g, "&quot;")
+                       .replace(/'/g, "&#039;");
+        }
+
+        // Global function to submit score
+        window.submitScoreToFirebase = async function() {
+            const finalNameInput = document.getElementById('final-player-name');
+            const reflectionInput = document.getElementById('reflection-input');
+            const submitBtn = document.getElementById('submit-score-btn');
+
+            const name = finalNameInput.value.trim();
+            const reflection = reflectionInput.value.trim();
+
+            if (!name) {
+                showToast("กรุณากรอกชื่อก่อนส่งคะแนน", "error");
+                finalNameInput.focus();
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังส่งข้อมูล...</span>`;
+
+            try {
+                if (db) {
+                    const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+                    await addDoc(leaderboardCol, {
+                        playerName: name,
+                        score: window.score || 0,
+                        correctCount: window.userAnswers ? window.userAnswers.filter(a => a.isCorrect).length : 0,
+                        maxCombo: window.maxCombo || 1,
+                        reflection: reflection,
+                        timestamp: Date.now()
+                    });
+                    showToast("บันทึกคะแนนและสรุปความรู้เรียบร้อยแล้ว!", "success");
+                } else {
+                    showToast("บันทึกคะแนนในเครื่องเรียบร้อยแล้ว (โหมดออฟไลน์)", "success");
+                }
+
+                submitBtn.className = "w-full py-3 rounded-xl bg-slate-300 text-slate-600 font-bold text-sm cursor-not-allowed";
+                submitBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>ส่งข้อมูลแล้ว</span>`;
+                
+                setTimeout(() => {
+                    window.openLeaderboardModal();
+                }, 800);
+            } catch (err) {
+                console.error("Submit error:", err);
+                showToast("เกิดข้อผิดพลาดในการส่งข้อมูล", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>ลองใหม่อีกครั้ง</span>`;
+            }
+        };
+
+        // Expose helper to show toast
+        window.showToast = function(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const message = document.getElementById('toast-message');
+
+            message.innerText = msg;
+            if (type === "success") {
+                icon.className = "fa-solid fa-circle-check text-emerald-400 text-xl";
+            } else if (type === "error") {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-400 text-xl";
+            } else {
+                icon.className = "fa-solid fa-info-circle text-amber-400 text-xl";
+            }
+
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 3000);
+        };
+    </script>
+
+    <!-- CLASSIC GAMEPLAY SCRIPT -->
+    <script>
+        // ==================== 12 CURRICULUM QUESTIONS ====================
+        const questionsData = [
+            {
+                id: 1,
+                category: "ความหมายและที่มา",
+                question: "ข้อใดนิยามความหมายของ 'เพลงพื้นบ้าน' ได้ถูกต้องสมบูรณ์ที่สุด?",
+                options: [
+                    "เพลงสากลประยุกต์ที่แต่งโดยศิลปินแห่งชาติ",
+                    "บทร้อยกรองท้องถิ่นที่จดจำสืบทอดกันมาเพื่อความบันเทิง",
+                    "บทสวดมนต์ศักดิ์สิทธิ์ที่ใช้ในพิธีการทางราชการ",
+                    "เพลงที่แต่งขึ้นเพื่อใช้การบรรเลงด้วยวงออร์เคสตรา"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงพื้นบ้าน คือ บทร้อยกรองท้องถิ่นที่แต่งและจดจำสืบทอดกันมาแบบมุขปาฐะ มุ่งสร้างความสนุกสนานและผ่อนคลายยามว่าง"
+            },
+            {
+                id: 2,
+                category: "ลักษณะการละเล่น",
+                question: "ข้อใดคือลักษณะสำคัญของการละเล่นเพลงพื้นบ้านไทย?",
+                options: [
+                    "ต้องมีการจ้างวานด้วยเงินจำนวนมากเสมอ",
+                    "สมาชิกในชุมนุมผลัดกันร้องรำตามความสมัครใจ",
+                    "จำกัดให้เฉพาะผู้ใหญ่บ้านหรือกำนันร้องได้เท่านั้น",
+                    "ต้องจัดขึ้นในโรงละครปิดที่ควบคุมเสียงเท่านั้น"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงพื้นบ้านเป็นการละเล่นที่ไม่เน้นการจ้างวาน ชาวบ้านในชุมชนจะผลัดกันร้องรำปฏิพากย์ (โต้ตอบ) ตามความสมัครใจและความถนัด"
+            },
+            {
+                id: 3,
+                category: "การให้จังหวะ",
+                question: "เครื่องดนตรีหรือวิธีใดที่นิยมใช้ให้จังหวะในเพลงพื้นบ้านไทยมากที่สุด?",
+                options: [
+                    "การปรบมือ ฉิ่ง ฉาบ หรือรำมะนา",
+                    "กลองชุดและกีตาร์ไฟฟ้า",
+                    "เปียโนและไวโอลิน",
+                    "แตรวงและวงดุริยางค์"
+                ],
+                correctIndex: 0,
+                explanation: "เพลงพื้นบ้านเดิมไม่นิยมดนตรีวงใหญ่ แต่เน้นความเรียบง่าย ใช้การปรบมือ ฉิ่ง ฉาบ หรือกรับ เพื่อความสะดวกและสนุกสนาน"
+            },
+            {
+                id: 4,
+                category: "เพลงพื้นบ้านภาคกลาง",
+                question: "\"ลำตัด เพลงอีแซว เพลงเต้นกำรำเคียว เพลงเรือ\" เป็นเพลงพื้นบ้านของภาคใด?",
+                options: [
+                    "ภาคเหนือ",
+                    "ภาคกลาง",
+                    "ภาคอีสาน",
+                    "ภาคใต้"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงเหล่านี้เป็นเอกลักษณ์ของภาคกลาง มักเล่นในฤดูน้ำหลาก เทศกาลสงกรานต์ หรือฤดูลงแขกเกี่ยวข้าว"
+            },
+            {
+                id: 5,
+                category: "รูปแบบและฉันทลักษณ์",
+                question: "ลักษณะ 'กลอนหัวเดียว' ที่นิยมใช้ในเพลงพื้นบ้านภาคกลาง (เช่น ลำตัด/เพลงอีแซว) คืออะไร?",
+                options: [
+                    "กลอนที่ใช้สระเสียงเดียวกันลงท้ายทุกวรรค",
+                    "กลอนที่มีเพียงวรรคเดียวในหนึ่งบท",
+                    "กลอนที่ไม่เน้นการสัมผัสใดๆ เลย",
+                    "กลอนที่ต้องแต่งเป็นภาษาบาลีเท่านั้น"
+                ],
+                correctIndex: 0,
+                explanation: "กลอนหัวเดียว คือ บทกลอนที่บังคับสัมผัสท้ายวรรคด้วยสระเดียวกันตลอดทั้งท่อน เช่น ลงท้ายด้วยสระ -เอา หรือ สระ -าย"
+            },
+            {
+                id: 6,
+                category: "เพลงพื้นบ้านภาคเหนือ",
+                question: "บทขับร้องที่ชายหนุ่มภาคเหนือนิยมใช้ร้องเกี้ยวพาราสีหญิงสาวเรียกว่าอะไร?",
+                options: [
+                    "เพลงบอก",
+                    "การจ๊อย",
+                    "หมอลำกลอน",
+                    "ดิเกร์ฮูลู"
+                ],
+                correctIndex: 1,
+                explanation: "การจ๊อย เป็นการขับร้องบทร้อยกรองของชาวล้านนา (ภาคเหนือ) นิยมใช้ร้องโต้ตอบเกี้ยวพาราสีขณะเดินทางไปหาหญิงสาว"
+            },
+            {
+                id: 7,
+                category: "เพลงพื้นบ้านภาคอีสาน",
+                question: "ศิลปะการร้องพื้นบ้านภาคอีสานที่ใช้ 'แคน' เป็นเครื่องดนตรีหลักประกอบการขับร้องคืออะไร?",
+                options: [
+                    "หมอลำ",
+                    "เพลงเรือ",
+                    "ซอเชียงใหม่",
+                    "รองเง็ง"
+                ],
+                correctIndex: 0,
+                explanation: "หมอลำ เป็นศิลปะเพลงพื้นบ้านอันทรงคุณค่าของภาคอีสาน โดยมีแคนเป็นเครื่องดนตรีเป่าหลักที่ให้จังหวะและทำนอง"
+            },
+            {
+                id: 8,
+                category: "เพลงพื้นบ้านภาคใต้",
+                question: "\"เพลงบอก\" ของภาคใต้ มีบทบาทสำคัญในเทศกาลใดมากที่สุด?",
+                options: [
+                    "เทศกาลลอยกระทง",
+                    "เทศกาลตรุษสงกรานต์และงานบอกบุญ",
+                    "พิธีแรกนาขวัญ",
+                    "งานเกี่ยวข้าวฤดูหนาว"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงบอก เป็นเพลงพื้นบ้านภาคใต้ที่แม่เพลง/พ่อเพลงจะนำคณะไปร้องอวยพรและบอกข่าวบุญตามบ้านเรือนในช่วงสงกรานต์"
+            },
+            {
+                id: 9,
+                category: "เพลงพื้นบ้านภาคใต้",
+                question: "การแสดงเพลงพื้นบ้านภาคใต้ชนิดใดที่นิยมเล่นในภาษามลายูถิ่น ใช้รำมะนาให้จังหวะสนุกสนาน?",
+                options: [
+                    "ดิเกร์ฮูลู (ลิเกฮูลู)",
+                    "เพลงอีแซว",
+                    "ค่าวซอ",
+                    "กันตรึม"
+                ],
+                correctIndex: 0,
+                explanation: "ดิเกร์ฮูลู หรือ ลิเกฮูลู เป็นการแสดงเพลงพื้นบ้านชายแดนใต้ มีการร้องโต้ตอบ ปรบมือ และตบกลองรำมะนาอย่างมีจังหวะเร้าใจ"
+            },
+            {
+                id: 10,
+                category: "วิถีชีวิตและเทศกาล",
+                question: "\"เพลงเต้นกำรำเคียว\" สะท้อนถึงวิถีชีวิตและการประกอบอาชีพใดของคนไทย?",
+                options: [
+                    "การทำประมงทะเล",
+                    "การทำนาและการเก็บเกี่ยวข้าว",
+                    "การทำสวนยางพารา",
+                    "การค้าขายทางเรือสากล"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงเต้นกำรำเคียว เป็นการละเล่นพื้นบ้านภาคกลางขณะลงแขกเกี่ยวข้าว มือหนึ่งถือเคียว มือหนึ่งถือรวงข้าว ร้องรำเพื่อผ่อนคลายความเหน็ดเหนื่อย"
+            },
+            {
+                id: 11,
+                category: "เพลงพื้นบ้านภาคอีสาน",
+                question: "เพลงพื้นบ้านประจำจังหวัดนครราชสีมาที่มีเอกลักษณ์เฉพาะตัวเรียกว่าเพลงอะไร?",
+                options: [
+                    "เพลงโคราช",
+                    "เพลงฉ่อย",
+                    "เพลงบอก",
+                    "ซอเก็บนก"
+                ],
+                correctIndex: 0,
+                explanation: "เพลงโคราช เป็นเพลงพื้นบ้านภาคอีสานที่มีท่วงทำนอง สำเนียง และสัมผัสกลอนเป็นเอกลักษณ์เฉพาะของชาวนครราชสีมา"
+            },
+            {
+                id: 12,
+                category: "คุณค่าและภูมิปัญญา",
+                question: "การอนุรักษ์เพลงพื้นบ้านไทยส่งผลดีทางสังคมอย่างไรมากที่สุด?",
+                options: [
+                    "ช่วยประหยัดงบประมาณสร้างโรงงาน",
+                    "สร้างความสามัคคีและสืบทอดภูมิปัญญาภาษาถิ่น",
+                    "ช่วยเปลี่ยนแนวดนตรีสากลให้กลายเป็นเพลงไทย",
+                    "ทำให้การแข่งขันกีฬาสนุกขึ้น"
+                ],
+                correctIndex: 1,
+                explanation: "เพลงพื้นบ้านเป็นศูนย์รวมจิตใจ เสริมสร้างความสามัคคีในชุมชน และบันทึกประวัติศาสตร์ ภาษา ภูมิปัญญาของคนรุ่นก่อนไว้"
+            }
+        ];
+
+        // GAME STATE
+        const QUESTION_TIME_LIMIT = 15;
+        let currentQuestionIndex = 0;
+        window.score = 0;
+        let lives = 3;
+        let comboCount = 0;
+        window.maxCombo = 1;
+        window.userAnswers = [];
+        let playerName = "";
+
+        let timerInterval = null;
+        let timeRemaining = QUESTION_TIME_LIMIT;
+        let isSoundMuted = false;
+        let isAnswerSubmitted = false;
+
+        let usedLifeline5050 = false;
+        let usedLifelineFreeze = false;
+        let isTimerFrozen = false;
+
+        // Audio Context Synthesizer
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (isSoundMuted) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                const now = ctx.currentTime;
+
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.setValueAtTime(140, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'combo') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.setValueAtTime(880.00, now + 0.1);
+                    osc.frequency.setValueAtTime(1174.66, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'click') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(450, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        function toggleSound() {
+            isSoundMuted = !isSoundMuted;
+            const icon = document.getElementById('sound-icon');
+            if (isSoundMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-lg text-slate-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-lg text-amber-800';
+                playSound('click');
+            }
+        }
+
+        function showScreen(screenId) {
+            playSound('click');
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function checkAndStartQuiz() {
+            const input = document.getElementById('player-name-input');
+            playerName = input.value.trim();
+
+            if (!playerName) {
+                if (window.showToast) window.showToast("กรุณากรอกชื่อก่อนเริ่มเกม", "error");
+                input.focus();
+                return;
+            }
+
+            document.getElementById('active-player-tag').innerText = playerName;
+            document.getElementById('final-player-name').value = playerName;
+
+            startQuiz();
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            window.score = 0;
+            lives = 3;
+            comboCount = 0;
+            window.maxCombo = 1;
+            window.userAnswers = [];
+            usedLifeline5050 = false;
+            usedLifelineFreeze = false;
+            
+            updateLifelinesUI();
+            updateLivesUI();
+            showScreen('quiz-screen');
+            renderQuestion();
+        }
+
+        function startQuestionTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = QUESTION_TIME_LIMIT;
+            isTimerFrozen = false;
+            updateTimerUI();
+
+            timerInterval = setInterval(() => {
+                if (isTimerFrozen) return;
+
+                timeRemaining--;
+                updateTimerUI();
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const timerText = document.getElementById('timer-text');
+            const timerBar = document.getElementById('timer-bar');
+
+            timerText.innerText = `⏱️ ${timeRemaining}s`;
+            const pct = (timeRemaining / QUESTION_TIME_LIMIT) * 100;
+            timerBar.style.width = `${Math.max(0, pct)}%`;
+
+            if (timeRemaining <= 5) {
+                timerText.className = "font-mono text-red-600 font-extrabold animate-pulse";
+                timerBar.className = "bg-gradient-to-r from-red-500 to-rose-600 h-full rounded-full transition-all duration-300 w-full";
+            } else {
+                timerText.className = "font-mono text-orange-600 font-extrabold";
+                timerBar.className = "bg-gradient-to-r from-emerald-500 via-amber-500 to-orange-500 h-full rounded-full transition-all duration-300 w-full";
+            }
+        }
+
+        function updateLivesUI() {
+            const container = document.getElementById('lives-container');
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('i');
+                if (i < lives) {
+                    heart.className = `fa-solid fa-heart text-red-500 text-sm ${lives === 1 ? 'animate-heart-danger' : ''}`;
+                } else {
+                    heart.className = "fa-regular fa-heart text-slate-300 text-sm";
+                }
+                container.appendChild(heart);
+            }
+        }
+
+        function updateComboUI() {
+            const comboBadge = document.getElementById('combo-badge');
+            const comboText = document.getElementById('combo-multiplier-text');
+
+            if (comboCount >= 2) {
+                let multiplier = comboCount >= 4 ? 3.0 : comboCount === 3 ? 2.0 : 1.5;
+                comboText.innerText = `COMBO x${multiplier}!`;
+                comboBadge.classList.remove('hidden');
+            } else {
+                comboBadge.classList.add('hidden');
+            }
+        }
+
+        function updateLifelinesUI() {
+            document.getElementById('lifeline-5050').disabled = usedLifeline5050;
+            document.getElementById('lifeline-freeze').disabled = usedLifelineFreeze;
+        }
+
+        function renderQuestion() {
+            isAnswerSubmitted = false;
+            const q = questionsData[currentQuestionIndex];
+
+            document.getElementById('question-counter').innerText = `ข้อ ${currentQuestionIndex + 1}/${questionsData.length}`;
+            document.getElementById('current-score').innerText = window.score;
+            updateComboUI();
+
+            document.getElementById('question-category').innerText = `หมวด: ${q.category}`;
+            document.getElementById('question-text').innerText = `${currentQuestionIndex + 1}. ${q.question}`;
+            document.getElementById('explanation-box').classList.add('hidden');
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `option-btn w-full p-4 rounded-2xl text-left border-2 border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/50 text-slate-800 font-semibold text-sm md:text-base flex items-center justify-between transition-all group`;
+                btn.id = `option-btn-${idx}`;
+                btn.onclick = () => selectOption(idx);
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-amber-200 text-slate-700 group-hover:text-amber-900 font-extrabold text-xs flex items-center justify-center shrink-0 border border-slate-200 transition">
+                            ${String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>${optText}</span>
+                    </div>
+                    <i class="fa-regular fa-circle text-slate-300 group-hover:text-amber-500 text-lg option-state-icon"></i>
+                `;
+                container.appendChild(btn);
+            });
+
+            startQuestionTimer();
+        }
+
+        function selectOption(selectedIndex) {
+            if (isAnswerSubmitted) return;
+            isAnswerSubmitted = true;
+            clearInterval(timerInterval);
+
+            const q = questionsData[currentQuestionIndex];
+            const isCorrect = (selectedIndex === q.correctIndex);
+
+            if (isCorrect) {
+                comboCount++;
+                if (comboCount > window.maxCombo) window.maxCombo = comboCount;
+
+                let multiplier = comboCount >= 4 ? 3.0 : comboCount === 3 ? 2.0 : comboCount === 2 ? 1.5 : 1.0;
+                let speedBonus = timeRemaining * 10;
+                let pointsGained = Math.round((100 + speedBonus) * multiplier);
+
+                window.score += pointsGained;
+                playSound(comboCount >= 2 ? 'combo' : 'correct');
+            } else {
+                comboCount = 0;
+                lives--;
+                playSound('wrong');
+                triggerCardShake();
+            }
+
+            window.userAnswers.push({
+                questionIndex: currentQuestionIndex,
+                selectedOption: selectedIndex,
+                isCorrect: isCorrect
+            });
+
+            updateLivesUI();
+            updateComboUI();
+            document.getElementById('current-score').innerText = window.score;
+            highlightOptions(selectedIndex, q.correctIndex);
+            showExplanation(isCorrect, q);
+
+            if (lives <= 0) {
+                document.getElementById('next-btn').innerHTML = `<span>จบเกม (สรุปผล)</span> <i class="fa-solid fa-flag-checkered"></i>`;
+            }
+        }
+
+        function handleTimeout() {
+            if (isAnswerSubmitted) return;
+            isAnswerSubmitted = true;
+
+            const q = questionsData[currentQuestionIndex];
+            comboCount = 0;
+            lives--;
+            playSound('wrong');
+            triggerCardShake();
+
+            window.userAnswers.push({
+                questionIndex: currentQuestionIndex,
+                selectedOption: -1,
+                isCorrect: false
+            });
+
+            updateLivesUI();
+            updateComboUI();
+            highlightOptions(-1, q.correctIndex);
+
+            const expBox = document.getElementById('explanation-box');
+            const expIcon = document.getElementById('explanation-icon');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+
+            expBox.classList.remove('hidden');
+            expBox.className = "mt-5 p-4 rounded-2xl border bg-rose-50 border-rose-200 text-rose-950 animate-fadeIn";
+            expIcon.className = "w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5";
+            expIcon.innerHTML = `<i class="fa-solid fa-clock"></i>`;
+            expTitle.innerText = `หมดเวลา! (เฉลยข้อ ${String.fromCharCode(65 + q.correctIndex)})`;
+            expTitle.className = "font-bold text-sm md:text-base text-rose-900";
+            expText.innerText = q.explanation;
+
+            if (lives <= 0) {
+                document.getElementById('next-btn').innerHTML = `<span>จบเกม (สรุปผล)</span> <i class="fa-solid fa-flag-checkered"></i>`;
+            }
+        }
+
+        function highlightOptions(selectedIndex, correctIndex) {
+            const optionBtns = document.querySelectorAll('.option-btn');
+            optionBtns.forEach((btn, idx) => {
+                btn.disabled = true;
+                const icon = btn.querySelector('.option-state-icon');
+
+                if (idx === correctIndex) {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left border-2 border-emerald-500 bg-emerald-50 text-emerald-950 font-bold text-sm md:text-base flex items-center justify-between shadow-sm";
+                    icon.className = "fa-solid fa-circle-check text-emerald-600 text-xl";
+                } else if (idx === selectedIndex) {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left border-2 border-red-500 bg-red-50 text-red-950 font-bold text-sm md:text-base flex items-center justify-between shadow-sm";
+                    icon.className = "fa-solid fa-circle-xmark text-red-600 text-xl";
+                } else {
+                    btn.className = "option-btn w-full p-4 rounded-2xl text-left border-2 border-slate-100 bg-white/60 text-slate-400 font-normal text-sm md:text-base flex items-center justify-between opacity-50";
+                    icon.className = "fa-regular fa-circle text-slate-200 text-lg";
+                }
+            });
+        }
+
+        function showExplanation(isCorrect, q) {
+            const expBox = document.getElementById('explanation-box');
+            const expIcon = document.getElementById('explanation-icon');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+
+            expBox.classList.remove('hidden');
+
+            if (isCorrect) {
+                expBox.className = "mt-5 p-4 rounded-2xl border bg-emerald-50 border-emerald-200 text-emerald-950 animate-fadeIn";
+                expIcon.className = "w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5";
+                expIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                expTitle.innerText = "ถูกต้องแม่นยำ! (+โบนัสสปีด)";
+                expTitle.className = "font-bold text-sm md:text-base text-emerald-900";
+            } else {
+                expBox.className = "mt-5 p-4 rounded-2xl border bg-red-50 border-red-200 text-red-950 animate-fadeIn";
+                expIcon.className = "w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5";
+                expIcon.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                expTitle.innerText = `คำตอบยังไม่ถูกต้อง (เสีย ๑ หัวใจ)`;
+                expTitle.className = "font-bold text-sm md:text-base text-red-900";
+            }
+
+            expText.innerText = q.explanation;
+        }
+
+        function triggerCardShake() {
+            const card = document.getElementById('quiz-card');
+            card.classList.add('animate-shake');
+            setTimeout(() => card.classList.remove('animate-shake'), 450);
+        }
+
+        function useLifeline5050() {
+            if (usedLifeline5050 || isAnswerSubmitted) return;
+            usedLifeline5050 = true;
+            updateLifelinesUI();
+
+            const q = questionsData[currentQuestionIndex];
+            const incorrectIndexes = [0, 1, 2, 3].filter(i => i !== q.correctIndex);
+            incorrectIndexes.sort(() => Math.random() - 0.5);
+            const toRemove = incorrectIndexes.slice(0, 2);
+
+            toRemove.forEach(idx => {
+                const btn = document.getElementById(`option-btn-${idx}`);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.25';
+                    btn.style.pointerEvents = 'none';
+                    btn.querySelector('.option-state-icon').className = 'fa-solid fa-ban text-slate-300';
+                }
+            });
+        }
+
+        function useLifelineFreeze() {
+            if (usedLifelineFreeze || isAnswerSubmitted) return;
+            usedLifelineFreeze = true;
+            updateLifelinesUI();
+
+            timeRemaining += 10;
+            isTimerFrozen = true;
+            updateTimerUI();
+
+            setTimeout(() => {
+                isTimerFrozen = false;
+            }, 5000);
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            if (lives <= 0) {
+                finishQuiz(true);
+                return;
+            }
+
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questionsData.length) {
+                renderQuestion();
+            } else {
+                finishQuiz(false);
+            }
+        }
+
+        function finishQuiz(isGameOver) {
+            clearInterval(timerInterval);
+
+            const totalQuestions = questionsData.length;
+            const correctCount = window.userAnswers.filter(a => a.isCorrect).length;
+
+            document.getElementById('final-score').innerText = window.score;
+            document.getElementById('final-correct').innerText = `${correctCount}/${totalQuestions}`;
+            document.getElementById('final-combo').innerText = `x${window.maxCombo >= 2 ? (window.maxCombo >= 4 ? 3.0 : window.maxCombo === 3 ? 2.0 : 1.5) : 1}`;
+
+            const rankTitle = document.getElementById('rank-title');
+            const rankMsg = document.getElementById('rank-message');
+            const rankBg = document.getElementById('rank-badge-bg');
+            const rankIcon = document.getElementById('rank-icon');
+            const resultTopBar = document.getElementById('result-top-bar');
+
+            if (isGameOver) {
+                rankTitle.innerText = "💔 GAME OVER!";
+                rankMsg.innerText = "พลังชีวิตของคุณหมดลงแล้ว! บันทึกสรุปความรู้ของคุณแล้วลองใหม่อีกครั้ง";
+                rankBg.className = "w-24 h-24 md:w-28 md:h-28 rounded-full bg-slate-700 flex items-center justify-center mx-auto shadow-lg";
+                rankIcon.className = "fa-solid fa-heart-crack text-white text-4xl md:text-5xl drop-shadow-md";
+                resultTopBar.className = "absolute top-0 left-0 right-0 h-3 bg-red-600";
+            } else {
+                if (correctCount >= 10) {
+                    if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+                    rankTitle.innerText = "🏆 ปรมาจารย์เพลงพื้นบ้าน";
+                    rankMsg.innerText = "สุดยอดความเชี่ยวชาญ! คุณทำคะแนนระดับท็อปของชั้นเรียน";
+                    rankBg.className = "w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center mx-auto shadow-lg animate-float";
+                    rankIcon.className = "fa-solid fa-crown text-white text-4xl md:text-5xl drop-shadow-md";
+                } else {
+                    rankTitle.innerText = "🌟 นักปราชญ์เพลงพื้นบ้าน";
+                    rankMsg.innerText = "เก่งมาก! คุณมีความรู้และความเข้าใจในวรรณกรรมเพลงพื้นบ้านอย่างถ่องแท้";
+                    rankBg.className = "w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-orange-400 to-amber-500 flex items-center justify-center mx-auto shadow-lg animate-float";
+                    rankIcon.className = "fa-solid fa-award text-white text-4xl md:text-5xl drop-shadow-md";
+                }
+            }
+
+            renderReviewSection();
+            showScreen('result-screen');
+        }
+
+        function renderReviewSection() {
+            const container = document.getElementById('answers-review-container');
+            container.innerHTML = '';
+
+            window.userAnswers.forEach((ans, idx) => {
+                const q = questionsData[ans.questionIndex];
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-xl border ${ans.isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'} text-xs space-y-1.5`;
+
+                let selectedText = ans.selectedOption >= 0 ? q.options[ans.selectedOption] : "หมดเวลา (ไม่ได้ตอบ)";
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="font-bold text-slate-800">${idx + 1}. ${q.question}</span>
+                        <span class="px-2 py-0.5 rounded-full font-bold text-[10px] shrink-0 ${ans.isCorrect ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'}">
+                            ${ans.isCorrect ? 'ถูกต้อง' : 'ตอบผิด'}
+                        </span>
+                    </div>
+                    <p class="text-slate-600">
+                        <strong>คำตอบของคุณ:</strong> ${selectedText}
+                    </p>
+                    ${!ans.isCorrect ? `<p class="text-emerald-900 font-semibold"><strong>เฉลยที่ถูกต้อง:</strong> ${q.options[q.correctIndex]}</p>` : ''}
+                    <p class="text-slate-500 italic bg-white/80 p-2 rounded-lg border border-slate-100">
+                        💡 ${q.explanation}
+                    </p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleAnswerReview() {
+            document.getElementById('answers-review-container').classList.toggle('hidden');
+        }
+
+        // MODAL CONTROLS
+        function openKnowledgeModal() {
+            playSound('click');
+            document.getElementById('knowledge-modal').classList.remove('hidden');
+        }
+
+        function closeKnowledgeModal() {
+            playSound('click');
+            document.getElementById('knowledge-modal').classList.add('hidden');
+        }
+
+        function openLeaderboardModal() {
+            playSound('click');
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+        }
+
+        function closeLeaderboardModal() {
+            playSound('click');
+            document.getElementById('leaderboard-modal').classList.add('hidden');
+        }
+
+        // Expose functions globally for inline HTML handlers
+        window.toggleSound = toggleSound;
+        window.showScreen = showScreen;
+        window.checkAndStartQuiz = checkAndStartQuiz;
+        window.selectOption = selectOption;
+        window.useLifeline5050 = useLifeline5050;
+        window.useLifelineFreeze = useLifelineFreeze;
+        window.nextQuestion = nextQuestion;
+        window.toggleAnswerReview = toggleAnswerReview;
+        window.openKnowledgeModal = openKnowledgeModal;
+        window.closeKnowledgeModal = closeKnowledgeModal;
+        window.openLeaderboardModal = openLeaderboardModal;
+        window.closeLeaderboardModal = closeLeaderboardModal;
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('knowledge-modal')) closeKnowledgeModal();
+            if (event.target === document.getElementById('leaderboard-modal')) closeLeaderboardModal();
+        };
+    </script>
+</body>
+</html>
